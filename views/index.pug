@@ -21,6 +21,8 @@ block content
             td= player.sos
         else
           tr
-            td(colspan=5) No player data yet
-  p Last updated:
-  p.small #{players[0].updatedAt}
+            td(colspan=5) No players have been created.
+
+  if players && players.length && players.length > 0
+    p Last updated:
+    p.small #{players[0].updatedAt}

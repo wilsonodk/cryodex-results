@@ -1,7 +1,7 @@
 extends layout.pug
 
 block content
-  h1 #{player.name}
+  h2 #{player.name}
 
   table.table
     thead
@@ -28,7 +28,7 @@ block content
           p #{match.player1} (#{match.player1points})
           p #{match.player2} (#{match.player2points})
     else
-      p No match data yet
+      p No matches have been created.
 
   p Last updated:
   p.small #{player.updatedAt}

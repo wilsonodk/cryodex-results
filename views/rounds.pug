@@ -9,7 +9,7 @@ block content
         p: a(href='/player/' + encodeURIComponent(match.player1)) #{match.player1} (#{match.player1points})
         p: a(href='/player/' + encodeURIComponent(match.player2)) #{match.player2} (#{match.player2points})
   else
-    p No match data yet
+    p No match data has been submitted.
 
   p Last updated:
   p.small #{matches[0].updatedAt}

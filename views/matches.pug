@@ -2,8 +2,8 @@ extends layout.pug
 
 block content
   h1 #{rounds.title}
-  ul
+  .list-group
     each round in rounds
-      li: h2: a(href='/round/'+ round.roundType + '/' + round.roundNumber) #{round.label}
+      a.list-group-item(href='/round/'+ round.roundType + '/' + round.roundNumber) #{round.label}
     else
-      li No rounds have been created
+      p.list-group-item No rounds have been created.
