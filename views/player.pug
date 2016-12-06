@@ -27,7 +27,7 @@ html(lang=en)
       each match in matches
         .panel.panel-default
           .panel-heading
-            h3.panel-title Round #{match.roundType} #{match.roundNumber}
+            h3.panel-title= match.label
           .panel-body
             h4 Table #{match.table}
             p #{match.player1} (#{match.player1points})
