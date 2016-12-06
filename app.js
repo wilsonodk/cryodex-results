@@ -62,7 +62,9 @@ app.use((err, req, res, next) => {
 // setup server
 const server = http.createServer(app);
 
-models.sequelize.sync({force: true}).then(_ => {
+const forceSync = process.env.NODE_ENV && process.env.NODE_ENV === 'production' ? false : true;
+
+models.sequelize.sync({force: forceSync}).then(_ => {
     server.listen(port, _ => {
         console.log('Atlanta X-Wing starting');
     });
