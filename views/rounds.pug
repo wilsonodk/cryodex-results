@@ -1,0 +1,20 @@
+doctype html
+html(lang=en)
+  head
+    include inc/head.pug
+  body
+    include inc/nav.pug
+
+
+    .container
+      each match in matches
+        .panel.panel-default
+          .panel-heading
+            h3.panel-title Table #{match.table}
+          .panel-body
+            p: a(href='/player/' + encodeURIComponent(match.player1)) #{match.player1} (#{match.player1points})
+            p: a(href='/player/' + encodeURIComponent(match.player2)) #{match.player2} (#{match.player2points})
+      else
+        p No match data yet
+
+    include inc/foot.pug

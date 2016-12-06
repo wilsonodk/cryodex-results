@@ -1,0 +1,15 @@
+doctype html
+html(lang=en)
+  head
+    include inc/head.pug
+  body
+    include inc/nav.pug
+
+    .container
+      h1 Swiss
+      - var rounds = [1, 2, 3, 4, 5, 6]
+      ul
+        each round in rounds
+          li: h2: a(href='/round/swiss/' + round) Round #{round}
+
+    include inc/foot.pug
