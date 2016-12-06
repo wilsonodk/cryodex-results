@@ -22,6 +22,19 @@ function getRoundLabel(type, num) {
     }
 }
 
+function uniqueRounds(matches) {
+    let rounds = [], arr = matches.filter(item => {
+        if (!rounds.includes(item.label)) {
+            rounds.push(item.label);
+            return true;
+        } else {
+            return false;
+        }
+    });
+
+    return arr;
+}
+
 router.post('/results', (req, res, next) => {
     let results = req.body;
 
@@ -103,12 +116,27 @@ router.get('/', (req, res, next) => {
     });
 });
 
-router.get('/rounds/swiss', (req, res, next) => {
-    res.render('swiss', {});
-});
+router.get('/rounds/:type', (req, res, next) => {
+    let type = req.params.type.toLowerCase() || 'swiss';
 
-router.get('/rounds/elimination', (req, res, next) => {
-    res.render('elimination', {});
+    models.Match.findAll({
+        attributes: ['label', 'roundType', 'roundNumber', 'updatedAt'],
+        where: {
+            roundType: type
+        },
+        order: [['roundNumber', 'DESC']]
+    })
+    .then(matches => {
+        let title = type === 'swiss' ? 'Swiss' : 'Single Elimination',
+            rounds = uniqueRounds(matches);
+
+        res.render('matches', {title: title, rounds: rounds});
+    })
+    .catch(err => {
+        console.error('/rounds/:type match findAll error');
+        console.error(err);
+        next(err);
+    });
 });
 
 router.get('/round/:type/:num', (req, res, next) => {

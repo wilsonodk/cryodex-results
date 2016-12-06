@@ -1,31 +1,26 @@
-doctype html
-html(lang=en)
-  head
-    include inc/head.pug
-  body
-    include inc/nav.pug
+extends layout.pug
 
-    .container
-      .table-responsive
-        table.table
-          thead
-            tr
-              th Rank
-              th Name
-              th Score
-              th MoV
-              th SoS
-          tbody
-            each player in players
-              tr
-                td= player.rank
-                td
-                  a(href='/player/'+ player.path) #{player.name}
-                td= player.score
-                td= player.mov
-                td= player.sos
-            else
-              tr
-                td(colspan=5) No player data yet
-
-    include inc/foot.pug
+block content
+  .table-responsive
+    table.table
+      thead
+        tr
+          th Rank
+          th Name
+          th Score
+          th MoV
+          th SoS
+      tbody
+        each player in players
+          tr
+            td= player.rank
+            td
+              a(href='/player/'+ player.path) #{player.name}
+            td= player.score
+            td= player.mov
+            td= player.sos
+        else
+          tr
+            td(colspan=5) No player data yet
+  p Last updated:
+  p.small #{players[0].updatedAt}
