@@ -36,71 +36,66 @@ function uniqueRounds(matches) {
 }
 
 router.post('/results', (req, res, next) => {
-    let results = req.body;
+    let results = req.body,
+        p = 0, m = 0
 
-    // Clear out all the stuff
-    models.sequelize.sync({force: true})
-    .then(_ => {
-        let p = 0, m = 0;
+    models.sequelize.transaction(t => {
+        let calls = [];
 
-        models.sequelize.transaction(t => {
-            let calls = [];
+        // Remove all players and matches
+        calls.push(models.Player.destroy({ where: { id: { $gt: 0 } } }));
+        calls.push(models.Match.destroy({ where: { id: { $gt: 0 } } }));
 
-            if (results.players) {
-                results.players.forEach(player => {
-                    let temp = models.Player.create({
-                            name: player.name,
-                            path: encodeURIComponent(player.name),
-                            mov: player.mov,
-                            score: player.score,
-                            sos: player.sos,
-                            rank: player.rank.swiss
+        // Add players
+        if (results.players) {
+            results.players.forEach(player => {
+                let temp = models.Player.create({
+                        name: player.name,
+                        path: encodeURIComponent(player.name),
+                        mov: player.mov,
+                        score: player.score,
+                        sos: player.sos,
+                        rank: player.rank.swiss
+                    }, {transaction: t});
+
+                calls.push(temp);
+                p++;
+            });
+        }
+
+        // Add matches
+        if (results.rounds) {
+            results.rounds.forEach(round => {
+                let table = 1;
+                round.matches.forEach(match => {
+                    let temp = models.Match.create({
+                            label:         getRoundLabel(round['round-type'], round['round-number']),
+                            roundType:     round['round-type'],
+                            roundNumber:   round['round-number'],
+                            table:         table,
+                            player1:       match.player1,
+                            player1points: match.player1points,
+                            player2:       match.player2,
+                            player2points: match.player2points
                         }, {transaction: t});
 
+                    table++;
                     calls.push(temp);
-                    p++;
+                    m++;
                 });
-            }
+            });
+        }
+        return Promise.all(calls);
 
-            if (results.rounds) {
-                results.rounds.forEach(round => {
-                    let table = 1;
-                    round.matches.forEach(match => {
-                        let temp = models.Match.create({
-                                label:         getRoundLabel(round['round-type'], round['round-number']),
-                                roundType:     round['round-type'],
-                                roundNumber:   round['round-number'],
-                                table:         table,
-                                player1:       match.player1,
-                                player1points: match.player1points,
-                                player2:       match.player2,
-                                player2points: match.player2points
-                            }, {transaction: t});
-
-                        table++;
-                        calls.push(temp);
-                        m++;
-                    });
-                });
-            }
-
-            return Promise.all(calls);
-        })
-        .then(result => {
-            res.send(`results: players? ${p} matches? ${m}`)
-        })
-        .catch(err => {
-            console.error('/results transaction error');
-            console.error(err);
-            res.status(500);
-            res.send('/results transaction error');
-        });
+    })
+    .then(result => {
+        res.send(`results: players? ${p} matches? ${m}`)
     })
     .catch(err => {
-        console.error('/results sync error')
+        console.error('/results transaction error');
         console.error(err);
         res.status(500);
-        res.send('/results sync error')
+        res.send('/results transaction error');
     });
 });
 
