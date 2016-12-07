@@ -19,9 +19,13 @@ app.set('view engine', 'pug');
 app.set('views', './views');
 
 app.use(favicon(__dirname + '/public/favicon.ico'));
-app.use(express.static('public'));
+app.use(express.static('public', {etag: false, maxAge: '1d'}));
 app.use(bodyParser.json());
 app.use(cors());
+app.use((req, res, next) => {
+    res.set('Cache-Control', 'public, max-age=60');
+    next();
+});
 
 app.get('/_hc', (req, res) => {
     let response = {
