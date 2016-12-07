@@ -122,6 +122,10 @@ router.get('/rounds/:type', (req, res, next) => {
         order: [['roundNumber', 'DESC']]
     })
     .then(matches => {
+        if (matches.length === 0) {
+            return res.status(404).render('404', {type: 'Match Type'});
+        }
+
         let title = type === 'swiss' ? 'Swiss' : 'Single Elimination',
             rounds = uniqueRounds(matches);
 
@@ -145,6 +149,10 @@ router.get('/round/:type/:num', (req, res, next) => {
         }
     })
     .then(matches => {
+        if (matches.length === 0) {
+            return res.status(404).render('404', {type: 'Round'});
+        }
+
         res.render('rounds', {
             matches: matches
         });
@@ -164,6 +172,10 @@ router.get('/player/:player', (req, res, next) => {
         }
     })
     .then(player => {
+        if (player.length === 0) {
+            return res.status(404).render('404', {type: 'Player'});
+        }
+
         models.Match.findAll({
             where: {
                 $or: [{player1: name}, {player2: name}]
