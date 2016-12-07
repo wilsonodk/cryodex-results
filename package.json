@@ -1,14 +1,19 @@
 {
-  "name": "regionals",
+  "name": "cryodex-results",
   "version": "0.1.0",
-  "description": "Atlanta Regional results",
+  "description": "A web view of Cryodex results",
+  "private": true,
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
     "test": "echo 'pass'"
   },
-  "author": "wwise",
+  "author": "wilsonodk",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wilsonodk/cryodex-results.git"
+  },
   "dependencies": {
     "body-parser": "1.15.2",
     "cors": "2.8.1",
