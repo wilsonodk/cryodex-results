@@ -7,9 +7,6 @@ const express = require('express'),
     cors = require('cors'),
     favicon = require('serve-favicon');
 
-global.status = 200;
-global.appError = null;
-
 const app = express(),
     port = normalizePort(process.env.PORT || 7070);
 
@@ -18,6 +15,7 @@ app.set('etag', false);
 app.set('view engine', 'pug');
 app.set('views', './views');
 
+app.use(morgan('tiny'));
 app.use(favicon(__dirname + '/public/favicon.ico'));
 app.use(express.static('public', {etag: false, maxAge: '1d'}));
 app.use(bodyParser.json());
@@ -26,22 +24,6 @@ app.use((req, res, next) => {
     res.set('Cache-Control', 'public, max-age=60');
     next();
 });
-
-app.get('/_hc', (req, res) => {
-    let response = {
-        status: global.status,
-        message: `running version ${pkg.version}`
-    };
-
-    if (global.appError) {
-        response.message = global.appError;
-    }
-
-    res.status(global.status);
-    res.json(response);
-});
-
-app.use(morgan('tiny'));
 
 const routes = require('./routes');
 app.use('/', routes);
