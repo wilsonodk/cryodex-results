@@ -2,6 +2,7 @@ const models = require('../models'),
     ttl = process.env.TTL || 60 * 5, // default 5m
     redisUrl = process.env.REDISTOGO_URL || '',
     cache = require('express-redis-cache')({
+        prefix: 'path',
         client: require('redis').createClient(redisUrl),
         expire: {
             200: ttl,
@@ -11,9 +12,8 @@ const models = require('../models'),
         }
     }),
     express = require('express'),
-    router = express.Router();
-
-let lastPayload = {};
+    router = express.Router(),
+    payloadKey = 'payload:results';
 
 function getRoundLabel(type, num) {
     if (type === 'swiss') {
@@ -54,15 +54,26 @@ function uniqueRounds(matches) {
     return arr;
 }
 
-router.get('/results', (req, res) => {
-    res.json(lastPayload);
+router.get('/results', (req, res, next) => {
+    cache.client.get(payloadKey, (err, payload) => {
+        if (err) {
+            return next(err);
+        }
+        try {
+            payload = JSON.parse(payload);
+            res.json(payload);
+        } catch(e) {
+            return next(e);
+        }
+    });
 });
 
 router.post('/results', (req, res, next) => {
     let results = req.body,
+        payload = JSON.stringify(results);
         p = 0, m = 0
 
-    lastPayload = results;
+    cache.client.set(payloadKey, payload, (err, val) => true);
 
     models.sequelize.transaction(t => {
         let calls = [];
@@ -114,7 +125,7 @@ router.post('/results', (req, res, next) => {
 
     })
     .then(result => {
-        cache.del('*', (err, num) => {
+        cache.del('path:*', (err, num) => {
             if (err) {
                 return next(err);
             }
