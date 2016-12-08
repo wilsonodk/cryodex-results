@@ -41,7 +41,7 @@ app.get('/_hc', (req, res) => {
     res.json(response);
 });
 
-app.use(morgan('common'));
+app.use(morgan('tiny'));
 
 const routes = require('./routes');
 app.use('/', routes);

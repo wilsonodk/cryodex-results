@@ -13,6 +13,8 @@ const models = require('../models'),
     express = require('express'),
     router = express.Router();
 
+let lastPayload = {};
+
 function getRoundLabel(type, num) {
     if (type === 'swiss') {
         return `Round ${num}`;
@@ -52,9 +54,15 @@ function uniqueRounds(matches) {
     return arr;
 }
 
+router.get('/results', (req, res) => {
+    res.json(lastPayload);
+});
+
 router.post('/results', (req, res, next) => {
     let results = req.body,
         p = 0, m = 0
+
+    lastPayload = results;
 
     models.sequelize.transaction(t => {
         let calls = [];
