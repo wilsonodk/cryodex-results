@@ -1,4 +1,15 @@
 const models = require('../models'),
+    ttl = process.env.TTL || 60 * 5, // default 5m
+    redisUrl = process.env.REDISTOGO_URL || '',
+    cache = require('express-redis-cache')({
+        client: require('redis').createClient(redisUrl),
+        expire: {
+            200: ttl,
+            '4xx': 10,
+            '5xx': 10,
+            'xxx': 1
+        }
+    }),
     express = require('express'),
     router = express.Router();
 
@@ -7,6 +18,12 @@ function getRoundLabel(type, num) {
         return `Round ${num}`;
     } else if (type === 'elimination') {
         switch (num) {
+            case '32':
+            case 32:
+                return 'Top 32'; break;
+            case '16':
+            case 16:
+                return 'Sweet Sixteen'; break;
             case '8':
             case 8:
                 return 'Quarterfinals'; break;
@@ -89,7 +106,12 @@ router.post('/results', (req, res, next) => {
 
     })
     .then(result => {
-        res.send(`results: players? ${p} matches? ${m}`)
+        cache.del('*', (err, num) => {
+            if (err) {
+                return next(err);
+            }
+            res.send(`RESULTS: Added ${p} players. Added ${m} matches. Deleted ${num} cached entries.`);
+        });
     })
     .catch(err => {
         console.error('/results transaction error');
@@ -99,105 +121,92 @@ router.post('/results', (req, res, next) => {
     });
 });
 
-router.get('/', (req, res, next) => {
+router.get('/', cache.route(), (req, res, next) => {
     models.Player.findAll({})
-    .then(players => {
-        res.render('index', {players: players});
-    })
-    .catch(err => {
-        console.error('/ player findAll error');
-        console.error(err);
-        next(err);
-    });
-});
-
-router.get('/rounds/:type', (req, res, next) => {
-    let type = req.params.type.toLowerCase() || 'swiss';
-
-    models.Match.findAll({
-        attributes: ['label', 'roundType', 'roundNumber', 'updatedAt'],
-        where: {
-            roundType: type
-        },
-        order: [['roundNumber', 'DESC']]
-    })
-    .then(matches => {
-        if (matches.length === 0) {
-            return res.status(404).render('404', {type: 'Match Type'});
-        }
-
-        let title = type === 'swiss' ? 'Swiss' : 'Single Elimination',
-            rounds = uniqueRounds(matches);
-
-        res.render('matches', {title: title, rounds: rounds});
-    })
-    .catch(err => {
-        console.error('/rounds/:type match findAll error');
-        console.error(err);
-        next(err);
-    });
-});
-
-router.get('/round/:type/:num', (req, res, next) => {
-    let type = req.params.type || 'swiss',
-        num = req.params.num  || 1;
-
-    models.Match.findAll({
-        where: {
-            roundType: type,
-            roundNumber: num
-        }
-    })
-    .then(matches => {
-        if (matches.length === 0) {
-            return res.status(404).render('404', {type: 'Round'});
-        }
-
-        res.render('rounds', {
-            matches: matches
-        });
-    })
-    .catch(err => {
-        console.error('/round/:type/:num match findAll error');
-        console.error(err);
-        next(err);
-    });
-});
-
-router.get('/player/:player', (req, res, next) => {
-    let name = req.params.player || 'no-name';
-    models.Player.findAll({
-        where: {
-            name: name
-        }
-    })
-    .then(player => {
-        if (player.length === 0) {
-            return res.status(404).render('404', {type: 'Player'});
-        }
-
-        models.Match.findAll({
-            where: {
-                $or: [{player1: name}, {player2: name}]
-            }
-        })
-        .then(matches => {
-            res.render('player', {
-                player: player[0],
-                matches: matches
-            });
+        .then(results => {
+            res.render('index', {players: results});
         })
         .catch(err => {
-            console.error('/player/:player match findAll error');
+            console.error('/ player findAll error');
             console.error(err);
             next(err);
         });
-    })
-    .catch(err => {
-        console.error('/player/:player player findAll error');
-        console.error(err);
-        next(err);
-    });
+});
+
+router.get('/rounds/:type', cache.route(), (req, res, next) => {
+    let type = req.params.type.toLowerCase() || 'swiss';
+
+    models.Match.findAll({
+            attributes: ['label', 'roundType', 'roundNumber', 'updatedAt'],
+            where: { roundType: type },
+            order: [ ['roundNumber', 'DESC'] ]
+        })
+        .then(results => {
+            if (results.length === 0) {
+                return res.status(404).render('404', {type: 'Match Type'});
+            }
+
+            let rounds = uniqueRounds(results),
+                title = type === 'swiss' ? 'Swiss' : 'Single Elimination';
+
+            res.render('matches', {title: title, rounds: rounds});
+        })
+        .catch(err => {
+            console.error('/rounds/:type match findAll error');
+            console.error(err);
+            next(err);
+        });
+});
+
+router.get('/round/:type/:num', cache.route(), (req, res, next) => {
+    let type = req.params.type || 'swiss',
+        num = req.params.num  || 1;
+
+    models.Match.findAll({ where: { roundType: type, roundNumber: num } })
+        .then(results => {
+            if (results.length === 0) {
+                return res.status(404).render('404', {type: 'Round'});
+            }
+
+            res.render('rounds', {matches: results});
+        })
+        .catch(err => {
+            console.error('/round/:type/:num match findAll error');
+            console.error(err);
+            next(err);
+        });
+});
+
+router.get('/player/:player', cache.route(), (req, res, next) => {
+    let name = req.params.player || 'no-name';
+
+    models.Player.findAll({ where: { name: name } })
+        .then(players => {
+            if (players.length === 0) {
+                return res.status(404).render('404', {type: 'Player'});
+            }
+            let player = players[0];
+
+            models.Match.findAll({ where: { $or: [{player1: name}, {player2: name}] } })
+                .then(matches => {
+                    let results = {
+                            player: player,
+                            matches: matches
+                        };
+
+                    res.render('player', results);
+                })
+                .catch(err => {
+                    console.error('/player/:player match findAll error');
+                    console.error(err);
+                    next(err);
+                });
+        })
+        .catch(err => {
+            console.error('/player/:player player findAll error');
+            console.error(err);
+            next(err);
+        });
 });
 
 module.exports = router;
